@@ -57,6 +57,7 @@ function Sidebar({ sdk }) {
 	};
 
 	const handlePublish = async () => {
+		let tasks = [];
 		if (
 			linksToUpdate.length > 0 &&
 			linksToUpdate.length < linkedEntries.length
@@ -67,7 +68,6 @@ function Sidebar({ sdk }) {
 			const contentTypeId = entry.sys.contentType.sys.id;
 			const unpublishedFields = entry.fields;
 
-			// TODO: edit title field to relate to this entry
 			const newEntryDraft = await sdk.space.createEntry(contentTypeId, {
 				fields: { ...unpublishedFields },
 			});
@@ -109,11 +109,13 @@ function Sidebar({ sdk }) {
 				});
 
 				// update the linked entry
-				const updatedLinkedEntry = await sdk.space.updateEntry({
-					...linkedEntry,
-					fields: newFields,
-				});
-				console.log("updated", updatedLinkedEntry);
+				tasks.push(
+					sdk.space.updateEntry({
+						...linkedEntry,
+						fields: newFields,
+					})
+				);
+				// console.log("updated", updatedLinkedEntry);
 			});
 
 			//TODO: revert changes on current entry
@@ -124,11 +126,19 @@ function Sidebar({ sdk }) {
 			// if the user selected all the linked entries then we can
 			// leave the existing links and update as normal
 		}
+
+		Promise.all(tasks)
+			.then((res) => {
+				sdk.notifier.success("Entry updated");
+			})
+			.catch((err) => {
+				sdk.notifier.error("Error updating entry");
+			});
 	};
 
 	useEffect(() => {
 		setValidSeclection(
-			linkedEntries.length <= 0 ||
+			linkedEntries.length <= 1 ||
 				(linkedEntries.length > 0 && linksToUpdate.length > 0)
 		);
 	}, [linkedEntries, linksToUpdate]);
@@ -156,7 +166,7 @@ function Sidebar({ sdk }) {
 		</div>
 	);
 
-	if (linkedEntries.length > 0) {
+	if (linkedEntries.length > 1) {
 		result = (
 			<div>
 				<h1>Warning:</h1>
