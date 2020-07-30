@@ -56,84 +56,91 @@ function Sidebar({ sdk }) {
 		}
 	};
 
-	const handlePublish = async () => {
+	const handleReversePublish = async () => {
 		let tasks = [];
 		if (
 			linksToUpdate.length > 0 &&
 			linksToUpdate.length < linkedEntries.length
 		) {
-			//create a new entry with the current unpublished data
+			//duplicate this entry using the last published data
 			const entryId = sdk.entry.getSys().id;
 			const entry = await sdk.space.getEntry(entryId);
 			const contentTypeId = entry.sys.contentType.sys.id;
-			const unpublishedFields = entry.fields;
+			const publishedEntries = await sdk.space.getPublishedEntries({
+				"sys.id": entryId,
+			});
+			const lastPublishedVersion = publishedEntries.items[0];
 
+			//create new entry draft
 			const newEntryDraft = await sdk.space.createEntry(contentTypeId, {
-				fields: { ...unpublishedFields },
+				fields: { ...lastPublishedVersion.fields },
 			});
 
-			//publish new entry
+			// publish new entry
 			const newEntry = await sdk.space.publishEntry(newEntryDraft);
 
-			//link each entry to update with the new entry
-			linksToUpdate.forEach(async (linkedEntryId) => {
-				const linkedEntry = linkedEntries.filter(
-					(link) => link.sys.id === linkedEntryId
-				)[0];
+			// save the changes made to this entry
+			const updatedEntry = await sdk.space.getEntry(entryId);
+			tasks.push(sdk.space.publishEntry({ ...updatedEntry }));
 
-				const newFields = { ...linkedEntry.fields };
+			// now we have the last published version of this entry as newEntry
+			// for each page that is not included in the update list
+			// replace the link to this entry with a link to the newEntry
+			linkedEntries
+				.filter((linkedEntry) => {
+					return !linksToUpdate.includes(linkedEntry.sys.id);
+				})
+				.forEach(async (linkedEntry) => {
+					console.log(
+						"replace link with link to new in ",
+						linkedEntry
+					);
+					// populate with all fields for default values
+					// the required fields will be overwritten
+					const newFields = { ...linkedEntry.fields };
 
-				// find the field that links to this entry
-				// and replace it with a link to newEntry
-
-				Object.keys(linkedEntry.fields).forEach((key) => {
-					const field = linkedEntry.fields[key];
-					// loop through the locales for each field
-					Object.keys(field).forEach((locale) => {
-						const fieldLocale = field[locale];
-						// check if field is an array
-						if (Array.isArray(fieldLocale)) {
-							fieldLocale.forEach((item, index) => {
-								//check if item is a link
-								if (item.sys) {
-									//check if this is the link we should replace
-									if (item.sys.id === entryId) {
+					//find the field that links to this entry
+					Object.keys(linkedEntry.fields).forEach((key) => {
+						const field = linkedEntry.fields[key];
+						Object.keys(field).forEach((locale) => {
+							if (Array.isArray(field[locale])) {
+								//go through each array item and check if it links to this entry
+								field[locale].forEach((linkedField, index) => {
+									if (
+										linkedField.sys &&
+										linkedField.sys.type === "Link" &&
+										linkedField.sys.id === entryId
+									) {
 										newFields[key][locale][index].sys.id =
 											newEntry.sys.id;
 									}
-								}
-							});
-						} else {
-						}
+								});
+							} else {
+								//TODO: dont loop and just replace 1 link
+							}
+						});
 					});
-				});
-
-				// update the linked entry
-				tasks.push(
-					sdk.space.updateEntry({
+					// update the linked entry
+					const updatedLinkedEntry = {
 						...linkedEntry,
 						fields: newFields,
-					})
-				);
-				// console.log("updated", updatedLinkedEntry);
-			});
+					};
+					const updated = await sdk.space.updateEntry(
+						updatedLinkedEntry
+					);
+					// publish the updated entry
+					await sdk.space.publishEntry(updated);
+				});
 
-			//TODO: revert changes on current entry
-			// console.log("orig", entry);
-			// const snapshots = await sdk.space.getEntrySnapshots(entryId);
-			// console.log("snapshots", snapshots);
-		} else {
-			// if the user selected all the linked entries then we can
-			// leave the existing links and update as normal
+			//wait untill we have made all the updates then show status notification
+			Promise.all(tasks)
+				.then((res) => {
+					sdk.notifier.success("Entry updated");
+				})
+				.catch((err) => {
+					sdk.notifier.error("Error updating entry");
+				});
 		}
-
-		Promise.all(tasks)
-			.then((res) => {
-				sdk.notifier.success("Entry updated");
-			})
-			.catch((err) => {
-				sdk.notifier.error("Error updating entry");
-			});
 	};
 
 	useEffect(() => {
@@ -235,7 +242,7 @@ function Sidebar({ sdk }) {
 			<Button
 				buttonType="positive"
 				onClick={() => {
-					handlePublish();
+					handleReversePublish();
 				}}
 				disabled={!validSelection}
 			>

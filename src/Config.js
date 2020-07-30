@@ -6,7 +6,6 @@ import {
 	SelectField,
 	Option,
 } from "@contentful/forma-36-react-components";
-const DEFAULT_ANIMAL = "cat";
 
 export default class Config extends Component {
 	constructor(props) {
@@ -26,27 +25,11 @@ export default class Config extends Component {
 	render() {
 		return (
 			<Form id="app-config">
-				<Heading>Daily Animal app</Heading>
+				<Heading>Dado AA app</Heading>
 				<Note noteType="primary" title="About the app">
-					Make editors in this space a little bit happier with a cute
-					animal picture in the entry editor sidebar.
+					Make editors in this space a little bit happier with some
+					customized editor functionality
 				</Note>
-				<SelectField
-					required
-					name="animal-selection"
-					id="animal-selection"
-					labelText="Animal"
-					value={this.state.parameters.animal || DEFAULT_ANIMAL}
-					onChange={(e) =>
-						this.setState({
-							parameters: { animal: e.target.value },
-						})
-					}
-				>
-					<Option value={DEFAULT_ANIMAL}>Catttt</Option>
-					<Option value="dog">Dog</Option>
-					<Option value="owl">Owl</Option>
-				</SelectField>
 			</Form>
 		);
 	}
@@ -56,7 +39,6 @@ export default class Config extends Component {
 			items: contentTypes,
 		} = await this.props.sdk.space.getContentTypes();
 		const contentTypeIds = contentTypes.map((ct) => ct.sys.id);
-		console.log("on config");
 
 		const result = {
 			parameters: this.state.parameters,
