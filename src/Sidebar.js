@@ -4,6 +4,7 @@ import {
 	CheckboxField,
 	Button,
 	ValidationMessage,
+	Paragraph,
 } from "@contentful/forma-36-react-components";
 
 function Sidebar({ sdk }) {
@@ -12,8 +13,83 @@ function Sidebar({ sdk }) {
 	const [linkedContentTypes, setLinkedContentTypes] = useState({});
 	const [selectAll, setSelectAll] = useState(false);
 	const [validSelection, setValidSeclection] = useState(false);
+	const [originalEntry, setOriginalEntry] = useState({});
+	const [locale, setlocale] = useState("en-US");
+	const [entryStatus, setEntryStatus] = useState({
+		working: false,
+		isDraft: false,
+		hasPendingChanges: false,
+		isPublished: false,
+	});
 
-	console.log(sdk);
+	const entryId = sdk.entry.getSys().id;
+
+	// keep track of selected locale
+	useEffect(() => {
+		sdk.editor.onLocaleSettingsChanged((e) => {
+			if (e) {
+				setlocale(e.focused);
+			}
+		});
+	}, [sdk.editor, setlocale]);
+
+	// when the current entry changes:
+	// store the last published version
+	useEffect(() => {
+		async function doGetPublishedEntries() {
+			try {
+				//get orininal entry
+				const publishedEntries = await sdk.space.getPublishedEntries({
+					"sys.id": entryId,
+				});
+				if (publishedEntries.total > 0) {
+					const entry = publishedEntries.items[0];
+					//update state
+					setOriginalEntry(entry);
+				}
+			} catch (e) {
+				console.log("error getting entry", e);
+			}
+		}
+		doGetPublishedEntries();
+	}, [sdk.space, sdk.entry, entryId]);
+
+	// entry status tracking
+	useEffect(() => {
+		sdk.entry.onSysChanged(sysChanged);
+		sysChanged();
+		function sysChanged(e) {
+			const sys = sdk.entry.getSys();
+			setEntryStatus({
+				working: false,
+				isDraft: !sys.publishedVersion,
+				hasPendingChanges:
+					sys.version > (sys.publishedVersion || 0) + 1,
+				isPublished: sys.version === (sys.publishedVersion || 0) + 1,
+			});
+		}
+	}, [sdk.entry]);
+
+	//validate linked entries to update selection
+	useEffect(() => {
+		setValidSeclection(
+			linkedEntries.length <= 1 ||
+				(linkedEntries.length > 0 && linksToUpdate.length > 0)
+		);
+	}, [linkedEntries, linksToUpdate]);
+
+	// find all the entries that link to this entry
+	useEffect(() => {
+		getLinkedEntries();
+	}, []);
+
+	// keep `select all` in sync
+	useEffect(() => {
+		setSelectAll(
+			linksToUpdate.length > 0 &&
+				linksToUpdate.length === linkedEntries.length
+		);
+	}, [linksToUpdate]);
 
 	const getLinkedEntries = async () => {
 		const entries = await sdk.space.getEntries({
@@ -56,24 +132,19 @@ function Sidebar({ sdk }) {
 		}
 	};
 
-	const handleReversePublish = async () => {
+	const handlePublish = async () => {
+		const entryId = sdk.entry.getSys().id;
 		let tasks = [];
 		if (
 			linksToUpdate.length > 0 &&
 			linksToUpdate.length < linkedEntries.length
 		) {
 			//duplicate this entry using the last published data
-			const entryId = sdk.entry.getSys().id;
-			const entry = await sdk.space.getEntry(entryId);
-			const contentTypeId = entry.sys.contentType.sys.id;
-			const publishedEntries = await sdk.space.getPublishedEntries({
-				"sys.id": entryId,
-			});
-			const lastPublishedVersion = publishedEntries.items[0];
+			const contentTypeId = originalEntry.sys.contentType.sys.id;
 
 			//create new entry draft
 			const newEntryDraft = await sdk.space.createEntry(contentTypeId, {
-				fields: { ...lastPublishedVersion.fields },
+				fields: { ...originalEntry.fields },
 			});
 
 			// publish new entry
@@ -131,7 +202,6 @@ function Sidebar({ sdk }) {
 					// publish the updated entry
 					await sdk.space.publishEntry(updated);
 				});
-
 			//wait untill we have made all the updates then show status notification
 			Promise.all(tasks)
 				.then((res) => {
@@ -140,32 +210,32 @@ function Sidebar({ sdk }) {
 				.catch((err) => {
 					sdk.notifier.error("Error updating entry");
 				});
+		} else {
+			// Do a normal update
+			const entry = await sdk.space.getEntry(entryId);
+
+			const newValues = {
+				sys: { ...entry.sys },
+				fields: {
+					...entry.fields,
+				},
+			};
+
+			Object.keys(sdk.entry.fields).forEach((key) => {
+				const field = sdk.entry.fields[key];
+				const value = field.getValue();
+				if (value) {
+					newValues.fields[key][locale] = value;
+				}
+			});
+
+			// update entry
+			const updated = await sdk.space.updateEntry(newValues);
+
+			// publish entry
+			await sdk.space.publishEntry(updated);
 		}
 	};
-
-	useEffect(() => {
-		setValidSeclection(
-			linkedEntries.length <= 1 ||
-				(linkedEntries.length > 0 && linksToUpdate.length > 0)
-		);
-	}, [linkedEntries, linksToUpdate]);
-
-	//find all the entries that link to this entry
-	useEffect(() => {
-		getLinkedEntries();
-	}, []);
-
-	//keep `select all` in sync
-	useEffect(() => {
-		if (
-			linksToUpdate.length > 0 &&
-			linksToUpdate.length === linkedEntries.length
-		) {
-			setSelectAll(true);
-		} else {
-			setSelectAll(false);
-		}
-	}, [linksToUpdate]);
 
 	let result = (
 		<div>
@@ -235,14 +305,30 @@ function Sidebar({ sdk }) {
 		);
 	}
 
+	const renderStatusLabel = () => {
+		if (entryStatus.isPublished) {
+			return "Published";
+		}
+
+		if (entryStatus.isDraft) {
+			return "Draft";
+		}
+
+		return "Published (pending changes)";
+	};
+
 	return (
 		<div>
 			{result}
 
+			<Paragraph className="f36-margin-bottom--s">
+				<strong>Status: </strong>
+				{renderStatusLabel()}
+			</Paragraph>
 			<Button
 				buttonType="positive"
 				onClick={() => {
-					handleReversePublish();
+					handlePublish();
 				}}
 				disabled={!validSelection}
 			>

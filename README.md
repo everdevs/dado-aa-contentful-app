@@ -10,8 +10,10 @@ This project is built as a Contentful app. This code is intended to run inside t
 
 [ ] update newEntry title
 
-[ ] publish normally
+[] publish normally
 
-[ ] show changed status
+    - [x] update edited fields
+    - [x] show changed status
+    - [ ] show draft status on duplicated page
 
 [x] publish parent entry when child entry is changed
