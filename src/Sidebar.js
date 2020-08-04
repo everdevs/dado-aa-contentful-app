@@ -5,6 +5,7 @@ import {
 	Button,
 	ValidationMessage,
 	Paragraph,
+	Icon,
 } from "@contentful/forma-36-react-components";
 import relativeDate from "relative-date";
 
@@ -302,28 +303,49 @@ function Sidebar({ sdk }) {
 					/>
 					{linkedEntries.map((entry, index) => {
 						return (
-							<CheckboxField
+							<div
 								key={entry.sys.id}
-								labelText={entry.displayField}
-								helpText={entry.sys.contentType.sys.id}
-								name={entry.sys.id}
-								id={entry.sys.id}
-								checked={linksToUpdate.includes(entry.sys.id)}
-								onChange={(e) => {
-									if (e.target.checked) {
-										setLinksToUpdate([
-											...linksToUpdate,
-											entry.sys.id,
-										]);
-									} else {
-										setLinksToUpdate(
-											linksToUpdate.filter(
-												(id) => id !== entry.sys.id
-											)
-										);
-									}
+								style={{
+									display: "flex",
+									justifyContent: "space-between",
 								}}
-							/>
+							>
+								<CheckboxField
+									labelText={entry.displayField}
+									helpText={entry.sys.contentType.sys.id}
+									name={entry.sys.id}
+									id={entry.sys.id}
+									checked={linksToUpdate.includes(
+										entry.sys.id
+									)}
+									onChange={(e) => {
+										if (e.target.checked) {
+											setLinksToUpdate([
+												...linksToUpdate,
+												entry.sys.id,
+											]);
+										} else {
+											setLinksToUpdate(
+												linksToUpdate.filter(
+													(id) => id !== entry.sys.id
+												)
+											);
+										}
+									}}
+								/>
+								<Icon
+									icon="ExternalLink"
+									onClick={() => {
+										console.log("clicked on ", entry);
+										const spaceId = entry.sys.space.sys.id;
+										const entryId = entry.sys.id;
+										const environmentId =
+											entry.sys.environment.sys.id;
+										const url = `https://app.contentful.com/spaces/${spaceId}/environments/${environmentId}/entries/${entryId}`;
+										window.open(url, "_blank");
+									}}
+								/>
+							</div>
 						);
 					})}
 				</FieldGroup>
