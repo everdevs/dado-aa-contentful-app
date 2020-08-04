@@ -1,11 +1,5 @@
 import React, { Component } from "react";
-import {
-	Heading,
-	Note,
-	Form,
-	SelectField,
-	Option,
-} from "@contentful/forma-36-react-components";
+import { Heading, Note, Form } from "@contentful/forma-36-react-components";
 
 export default class Config extends Component {
 	constructor(props) {

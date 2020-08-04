@@ -2,14 +2,14 @@ This project is built as a Contentful app. This code is intended to run inside t
 
 ## TODO
 
-[x] revert changes to original entry
-
-[ ] support links that aren't arrays
-
 [ ] support nested links
 
 [ ] update newEntry title
 
+[ ] provide links to linked pages
+
+[x] support links that aren't arrays
+[x] revert changes to original entry
 [x] publish normally
 
     - [x] update edited fields

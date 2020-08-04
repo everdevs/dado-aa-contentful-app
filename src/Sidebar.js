@@ -166,10 +166,6 @@ function Sidebar({ sdk }) {
 					return !linksToUpdate.includes(linkedEntry.sys.id);
 				})
 				.forEach(async (linkedEntry) => {
-					console.log(
-						"replace link with link to new in ",
-						linkedEntry
-					);
 					// populate with all fields for default values
 					// the required fields will be overwritten
 					const newFields = { ...linkedEntry.fields };
@@ -192,6 +188,15 @@ function Sidebar({ sdk }) {
 								});
 							} else {
 								//TODO: dont loop and just replace 1 link
+								const linkedField = field[locale];
+								if (
+									linkedField.sys &&
+									linkedField.sys.type === "Link" &&
+									linkedField.sys.id === entryId
+								) {
+									newFields[key][locale].sys.id =
+										newEntry.sys.id;
+								}
 							}
 						});
 					});
@@ -246,7 +251,17 @@ function Sidebar({ sdk }) {
 					sdk.notifier.success("Entry updated");
 				})
 				.catch((err) => {
-					sdk.notifier.error("Error updating entry");
+					switch (err.code) {
+						case "UnresolvedLinks":
+							sdk.notifier.error(
+								"Couldn't update entry. Resolve missing links"
+							);
+							break;
+
+						default:
+							sdk.notifier.error("Error updating entry");
+							console.log(err);
+					}
 				})
 				.finally(() => {
 					setEntryStatus({ ...entryStatus, working: false });
@@ -314,8 +329,7 @@ function Sidebar({ sdk }) {
 				</FieldGroup>
 				{!validSelection ? (
 					<ValidationMessage>
-						Select the places you inted to be affected by updating
-						this entry
+						Select entries you want to update
 					</ValidationMessage>
 				) : null}
 			</div>
