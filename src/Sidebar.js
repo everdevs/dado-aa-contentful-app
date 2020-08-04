@@ -136,6 +136,7 @@ function Sidebar({ sdk }) {
 	};
 
 	const handlePublish = async () => {
+		setEntryStatus({ ...entryStatus, working: true });
 		const entryId = sdk.entry.getSys().id;
 		let tasks = [];
 		if (
@@ -212,6 +213,9 @@ function Sidebar({ sdk }) {
 				})
 				.catch((err) => {
 					sdk.notifier.error("Error updating entry");
+				})
+				.finally(() => {
+					setEntryStatus({ ...entryStatus, working: false });
 				});
 		} else {
 			// Do a normal update
@@ -236,7 +240,17 @@ function Sidebar({ sdk }) {
 			const updated = await sdk.space.updateEntry(newValues);
 
 			// publish entry
-			await sdk.space.publishEntry(updated);
+			sdk.space
+				.publishEntry(updated)
+				.then((res) => {
+					sdk.notifier.success("Entry updated");
+				})
+				.catch((err) => {
+					sdk.notifier.error("Error updating entry");
+				})
+				.finally(() => {
+					setEntryStatus({ ...entryStatus, working: false });
+				});
 		}
 	};
 
