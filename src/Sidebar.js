@@ -6,6 +6,7 @@ import {
 	ValidationMessage,
 	Paragraph,
 } from "@contentful/forma-36-react-components";
+import relativeDate from "relative-date";
 
 function Sidebar({ sdk }) {
 	const [linksToUpdate, setLinksToUpdate] = useState([]);
@@ -20,6 +21,7 @@ function Sidebar({ sdk }) {
 		isDraft: false,
 		hasPendingChanges: false,
 		isPublished: false,
+		lastPublish: null,
 	});
 
 	const entryId = sdk.entry.getSys().id;
@@ -66,6 +68,7 @@ function Sidebar({ sdk }) {
 				hasPendingChanges:
 					sys.version > (sys.publishedVersion || 0) + 1,
 				isPublished: sys.version === (sys.publishedVersion || 0) + 1,
+				lastPublish: relativeDate(new Date(sys.updatedAt)),
 			});
 		}
 	}, [sdk.entry]);
@@ -306,17 +309,16 @@ function Sidebar({ sdk }) {
 	}
 
 	const renderStatusLabel = () => {
-		if (entryStatus.isPublished) {
-			return "Published";
+		if (entryStatus.isDraft) {
+			return <span className="color-warning">Draft</span>;
 		}
 
-		if (entryStatus.isDraft) {
-			return "Draft";
+		if (entryStatus.isPublished) {
+			return <span className="color-positive">Published</span>;
 		}
 
 		return "Published (pending changes)";
 	};
-
 	return (
 		<div>
 			{result}
@@ -330,10 +332,13 @@ function Sidebar({ sdk }) {
 				onClick={() => {
 					handlePublish();
 				}}
-				disabled={!validSelection}
+				disabled={!validSelection || entryStatus.working}
+				loading={entryStatus.working}
+				isFullWidth={true}
 			>
 				Publish
 			</Button>
+			<Paragraph>Last saved {entryStatus.lastPublish}</Paragraph>
 		</div>
 	);
 }
