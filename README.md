@@ -7,12 +7,15 @@ This project is built as a Contentful app. This code is intended to run inside t
 [ ] update newEntry title
 
 [x] provide links to linked pages
+
 [x] support links that aren't arrays
+
 [x] revert changes to original entry
+
 [x] publish normally
 
-    - [x] update edited fields
-    - [x] show changed status
-    - [x] show draft status on duplicated page
+-   [x] update edited fields
+-   [x] show changed status
+-   [x] show draft status on duplicated page
 
 [x] publish parent entry when child entry is changed

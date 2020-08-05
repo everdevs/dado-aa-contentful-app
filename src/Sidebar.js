@@ -360,24 +360,29 @@ function Sidebar({ sdk }) {
 
 	const renderStatusLabel = () => {
 		if (entryStatus.isDraft) {
-			return <span className="color-warning">Draft</span>;
+			return <span className="f36-color--warning">Draft</span>;
 		}
 
 		if (entryStatus.isPublished) {
-			return <span className="color-positive">Published</span>;
+			return <span className="f36-color--positive">Published</span>;
 		}
 
-		return "Published (pending changes)";
+		return (
+			<span className="f36-color--primary">
+				Published (pending changes)
+			</span>
+		);
 	};
 	return (
 		<div>
 			{result}
 
-			<Paragraph className="f36-margin-bottom--s">
+			<Paragraph>
 				<strong>Status: </strong>
 				{renderStatusLabel()}
 			</Paragraph>
 			<Button
+				className="f36-margin-top--s f36-margin-bottom--xs"
 				buttonType="positive"
 				onClick={() => {
 					handlePublish();

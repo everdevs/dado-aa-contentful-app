@@ -1085,6 +1085,13 @@
     exec-sh "^0.3.2"
     minimist "^1.2.0"
 
+"@contentful/forma-36-fcss@^0.2.4":
+  version "0.2.4"
+  resolved "https://registry.yarnpkg.com/@contentful/forma-36-fcss/-/forma-36-fcss-0.2.4.tgz#cdda371b62c9374380138aeaeb35dc93e1f99a51"
+  integrity sha512-lLT2fSTfHxPXpTjhwqA6hcSMqKXdeIIoqsNMuk8TqZDrsb+6wbNmPcFmFYfOVr6rWd66XCJ6xkevKcm49qVaJA==
+  dependencies:
+    "@contentful/forma-36-tokens" "^0.7.2"
+
 "@contentful/forma-36-react-components@^3.42.2":
   version "3.42.2"
   resolved "https://registry.yarnpkg.com/@contentful/forma-36-react-components/-/forma-36-react-components-3.42.2.tgz#d3021e3bcb83954d42bdddc1f1c168472344c277"
@@ -1097,6 +1104,11 @@
     react-modal "3.6.1"
     react-transition-group "^2.4.0"
     truncate "^2.0.1"
+
+"@contentful/forma-36-tokens@^0.7.2":
+  version "0.7.2"
+  resolved "https://registry.yarnpkg.com/@contentful/forma-36-tokens/-/forma-36-tokens-0.7.2.tgz#69c2ef26b8e6436324badf8fa3570ac6ea6a0a21"
+  integrity sha512-pIBIFYrtKo9xmbXps9R6PBG4cA6sNzytm57gotPftUWJgOS6BCuCYUOme3mlx9gDV+3wXc4k12QePwU2AkRraw==
 
 "@csstools/convert-colors@^1.4.0":
   version "1.4.0"
