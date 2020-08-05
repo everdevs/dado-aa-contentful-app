@@ -59,10 +59,12 @@ function Sidebar({ sdk }) {
 
 	// entry status tracking
 	useEffect(() => {
-		sdk.entry.onSysChanged(sysChanged);
-		sysChanged();
+		const detatchFunctions = [];
+		detatchFunctions.push(sdk.entry.onSysChanged(sysChanged));
+
 		function sysChanged(e) {
 			const sys = sdk.entry.getSys();
+
 			setEntryStatus({
 				working: false,
 				isDraft: !sys.publishedVersion,
@@ -72,6 +74,10 @@ function Sidebar({ sdk }) {
 				lastPublish: relativeDate(new Date(sys.updatedAt)),
 			});
 		}
+
+		return () => {
+			detatchFunctions.forEach((detatch) => detatch());
+		};
 	}, [sdk.entry]);
 
 	//validate linked entries to update selection
@@ -188,7 +194,6 @@ function Sidebar({ sdk }) {
 									}
 								});
 							} else {
-								//TODO: dont loop and just replace 1 link
 								const linkedField = field[locale];
 								if (
 									linkedField.sys &&
@@ -226,9 +231,10 @@ function Sidebar({ sdk }) {
 		} else {
 			// Do a normal update
 			const entry = await sdk.space.getEntry(entryId);
-
+			console.log("orig", entry);
 			const newValues = {
-				sys: { ...entry.sys },
+				sys: { ...entry.sys, version: entry.sys.version },
+				// sys: { id: entry.sys.id, version: entry.sys.version },
 				fields: {
 					...entry.fields,
 				},
@@ -237,11 +243,12 @@ function Sidebar({ sdk }) {
 			Object.keys(sdk.entry.fields).forEach((key) => {
 				const field = sdk.entry.fields[key];
 				const value = field.getValue();
+
 				if (value) {
 					newValues.fields[key][locale] = value;
 				}
 			});
-
+			console.log("new vals", newValues);
 			// update entry
 			const updated = await sdk.space.updateEntry(newValues);
 
@@ -336,7 +343,6 @@ function Sidebar({ sdk }) {
 								<Icon
 									icon="ExternalLink"
 									onClick={() => {
-										console.log("clicked on ", entry);
 										const spaceId = entry.sys.space.sys.id;
 										const entryId = entry.sys.id;
 										const environmentId =
@@ -387,7 +393,11 @@ function Sidebar({ sdk }) {
 				onClick={() => {
 					handlePublish();
 				}}
-				disabled={!validSelection || entryStatus.working}
+				disabled={
+					!validSelection ||
+					entryStatus.working ||
+					entryStatus.isPublished
+				}
 				loading={entryStatus.working}
 				isFullWidth={true}
 			>
