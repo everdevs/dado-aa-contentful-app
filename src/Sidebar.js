@@ -231,30 +231,9 @@ function Sidebar({ sdk }) {
 		} else {
 			// Do a normal update
 			const entry = await sdk.space.getEntry(entryId);
-			console.log("orig", entry);
-			const newValues = {
-				sys: { ...entry.sys, version: entry.sys.version },
-				// sys: { id: entry.sys.id, version: entry.sys.version },
-				fields: {
-					...entry.fields,
-				},
-			};
-
-			Object.keys(sdk.entry.fields).forEach((key) => {
-				const field = sdk.entry.fields[key];
-				const value = field.getValue();
-
-				if (value) {
-					newValues.fields[key][locale] = value;
-				}
-			});
-			console.log("new vals", newValues);
-			// update entry
-			const updated = await sdk.space.updateEntry(newValues);
-
 			// publish entry
 			sdk.space
-				.publishEntry(updated)
+				.publishEntry(entry)
 				.then((res) => {
 					sdk.notifier.success("Entry updated");
 				})
