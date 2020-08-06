@@ -7,6 +7,7 @@ import "@contentful/forma-36-fcss/dist/styles.css";
 
 import Sidebar from "./Sidebar";
 import Config from "./Config";
+import JsonEditor from "./JsonEditor";
 
 init((sdk) => {
 	const root = document.getElementById("root");
@@ -15,6 +16,9 @@ init((sdk) => {
 		render(<Config sdk={sdk} />, root);
 	} else if (sdk.location.is(locations.LOCATION_ENTRY_SIDEBAR)) {
 		render(<Sidebar sdk={sdk} />, root);
+		sdk.window.startAutoResizer();
+	} else if (sdk.location.is(locations.LOCATION_ENTRY_FIELD)) {
+		render(<JsonEditor sdk={sdk} />, root);
 		sdk.window.startAutoResizer();
 	}
 });
