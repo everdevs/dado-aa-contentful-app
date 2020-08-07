@@ -245,6 +245,7 @@ function Sidebar({ sdk }) {
 	// find all the entries that link to this entry
 	useEffect(() => {
 		doGetLinkedEntries();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	// keep `select all` in sync
