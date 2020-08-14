@@ -80,15 +80,15 @@ function Sidebar({ sdk }) {
 		) {
 			setShowSpinner(true);
 
-			//duplicate this entry using the last published data
+			// //duplicate this entry using the last published data
 			const contentTypeId = originalEntry.sys.contentType.sys.id;
 
-			//create new entry draft
+			// //create new entry draft
 			const newEntryDraft = await sdk.space.createEntry(contentTypeId, {
 				fields: { ...originalEntry.fields },
 			});
 
-			// publish new entry
+			// // publish new entry
 			const newEntry = await sdk.space.publishEntry(newEntryDraft);
 
 			// save the changes made to this entry
@@ -111,31 +111,80 @@ function Sidebar({ sdk }) {
 					Object.keys(linkedEntry.fields).forEach((key) => {
 						const field = linkedEntry.fields[key];
 						Object.keys(field).forEach((locale) => {
-							if (Array.isArray(field[locale])) {
-								//go through each array item and check if it links to this entry
-								field[locale].forEach((linkedField, index) => {
+							//check if this field can reference another entry
+							if (isReferenceField(field)) {
+								const fieldValue = field[locale];
+								console.log("candidate link field", fieldValue);
+
+								if (Array.isArray(fieldValue)) {
+									//find link in list of links
+									fieldValue.forEach((fv) => {
+										if (
+											fv.sys &&
+											fv.sys.type === "Link" &&
+											fv.sys.id === entryId
+										) {
+											console.log("found ref", fv);
+										}
+									});
+								} else {
+									//check if single link or rich text
 									if (
-										linkedField.sys &&
-										linkedField.sys.type === "Link" &&
-										linkedField.sys.id === entryId
+										fieldValue.sys &&
+										fieldValue.sys.type === "Link"
 									) {
-										newFields[key][locale][index].sys.id =
-											newEntry.sys.id;
+										//single link
+										if (fieldValue.sys.id === entryId) {
+											console.log("found ref!");
+											newFields[key][locale].sys.id =
+												newEntry.sys.id;
+										}
+									} else {
+										//rich text
+										console.log("might in rich text");
 									}
-								});
-							} else {
-								const linkedField = field[locale];
-								if (
-									linkedField.sys &&
-									linkedField.sys.type === "Link" &&
-									linkedField.sys.id === entryId
-								) {
-									newFields[key][locale].sys.id =
-										newEntry.sys.id;
 								}
+								// if (isEntryLinkedInField(field, entryId)) {
+								// 	console.log("found the ref!!!!!!!!!!");
+								// }
 							}
+							// if (Array.isArray(field[locale])) {
+							// 	console.log("Linked to in an array");
+							// 	//go through each array item and check if it links to this entry
+							// 	field[locale].forEach((linkedField, index) => {
+							// 		if (
+							// 			// linkedField.sys &&
+							// 			// linkedField.sys.type === "Link" &&
+							// 			// linkedField.sys.id === entryId
+							// 			isLinkedField(linkedField)
+							// 		) {
+							// 			newFields[key][locale][index].sys.id =
+							// 				newEntry.sys.id;
+							// 			console.log(
+							// 				"found link in array",
+							// 				linkedField
+							// 			);
+							// 		}
+							// 	});
+							// } else {
+							// 	console.log("Linked to in a single ");
+							// 	if (
+							// 		// linkedField.sys &&
+							// 		// linkedField.sys.type === "Link" &&
+							// 		// linkedField.sys.id === entryId
+							// 		isLinkedField(field[locale])
+							// 	) {
+							// 		newFields[key][locale].sys.id =
+							// 			newEntry.sys.id;
+							// 		console.log(
+							// 			"found link in single",
+							// 			field[locale]
+							// 		);
+							// 	}
+							// }
 						});
 					});
+					console.log("new fields", newFields);
 					// update the linked entry
 					const updatedLinkedEntry = {
 						...linkedEntry,
@@ -178,6 +227,13 @@ function Sidebar({ sdk }) {
 								"Couldn't update entry. Resolve missing links"
 							);
 							break;
+						case "InvalidEntry":
+							sdk.notifier.error(
+								"Couldn't update entry. Complete required fields"
+							);
+							console.log("invalid entry error");
+							console.log(err);
+							break;
 
 						default:
 							sdk.notifier.error("Error updating entry");
@@ -189,6 +245,37 @@ function Sidebar({ sdk }) {
 				});
 		}
 	};
+
+	// reference fields include links and rich text
+	function isReferenceField(field) {
+		let result = false;
+		//get value from field
+		Object.keys(field).forEach((locale) => {
+			const fieldValue = field[locale];
+			if (Array.isArray(fieldValue)) {
+				fieldValue.forEach((val) => {
+					if (val.sys && val.sys.type === "Link") {
+						result = true;
+						return;
+					}
+				});
+			} else {
+				// console.log("check if single link or rich text");
+				// console.log(fieldValue);
+				if (fieldValue.nodeType === "document") {
+					result = true;
+					return;
+				}
+
+				if (fieldValue.sys && fieldValue.sys.type === "Link") {
+					result = true;
+					return;
+				}
+			}
+		});
+
+		return result;
+	}
 
 	// when the current entry changes:
 	// store the last published version
