@@ -118,13 +118,16 @@ function Sidebar({ sdk }) {
 
 								if (Array.isArray(fieldValue)) {
 									//find link in list of links
-									fieldValue.forEach((fv) => {
+									fieldValue.forEach((fv, index) => {
 										if (
 											fv.sys &&
 											fv.sys.type === "Link" &&
 											fv.sys.id === entryId
 										) {
 											console.log("found ref", fv);
+											newFields[key][locale][
+												index
+											].sys.id = newEntry.sys.id;
 										}
 									});
 								} else {
