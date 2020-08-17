@@ -114,7 +114,6 @@ function Sidebar({ sdk }) {
 							//check if this field can reference another entry
 							if (isReferenceField(field)) {
 								const fieldValue = field[locale];
-								console.log("candidate link field", fieldValue);
 
 								if (Array.isArray(fieldValue)) {
 									//find link in list of links
@@ -144,50 +143,16 @@ function Sidebar({ sdk }) {
 										}
 									} else {
 										//rich text
-										console.log("might in rich text");
+										const replaced = recursivelyReplaceLink(
+											fieldValue,
+											originalEntry.sys.id,
+											newEntry.sys.id
+										);
 									}
 								}
-								// if (isEntryLinkedInField(field, entryId)) {
-								// 	console.log("found the ref!!!!!!!!!!");
-								// }
 							}
-							// if (Array.isArray(field[locale])) {
-							// 	console.log("Linked to in an array");
-							// 	//go through each array item and check if it links to this entry
-							// 	field[locale].forEach((linkedField, index) => {
-							// 		if (
-							// 			// linkedField.sys &&
-							// 			// linkedField.sys.type === "Link" &&
-							// 			// linkedField.sys.id === entryId
-							// 			isLinkedField(linkedField)
-							// 		) {
-							// 			newFields[key][locale][index].sys.id =
-							// 				newEntry.sys.id;
-							// 			console.log(
-							// 				"found link in array",
-							// 				linkedField
-							// 			);
-							// 		}
-							// 	});
-							// } else {
-							// 	console.log("Linked to in a single ");
-							// 	if (
-							// 		// linkedField.sys &&
-							// 		// linkedField.sys.type === "Link" &&
-							// 		// linkedField.sys.id === entryId
-							// 		isLinkedField(field[locale])
-							// 	) {
-							// 		newFields[key][locale].sys.id =
-							// 			newEntry.sys.id;
-							// 		console.log(
-							// 			"found link in single",
-							// 			field[locale]
-							// 		);
-							// 	}
-							// }
 						});
 					});
-					console.log("new fields", newFields);
 					// update the linked entry
 					const updatedLinkedEntry = {
 						...linkedEntry,
@@ -249,6 +214,25 @@ function Sidebar({ sdk }) {
 		}
 	};
 
+	function recursivelyReplaceLink(node, idToReplace, newId) {
+		if (node.content && node.content.length > 0) {
+			node.content.forEach((item) => {
+				return recursivelyReplaceLink(item, idToReplace, newId);
+			});
+		} else {
+			if (
+				node.nodeType === "embedded-entry-block" ||
+				node.nodeType === "embedded-entry-inline"
+			) {
+				if (node.data.target.sys.id === idToReplace) {
+					node.data.target.sys.id = newId;
+				}
+			}
+
+			return node;
+		}
+	}
+
 	// reference fields include links and rich text
 	function isReferenceField(field) {
 		let result = false;
@@ -263,8 +247,7 @@ function Sidebar({ sdk }) {
 					}
 				});
 			} else {
-				// console.log("check if single link or rich text");
-				// console.log(fieldValue);
+				// check if single link or rich text
 				if (fieldValue.nodeType === "document") {
 					result = true;
 					return;
@@ -353,7 +336,11 @@ function Sidebar({ sdk }) {
 			<div>
 				<h1>Warning:</h1>
 				<h5>This entry is used in more than one place</h5>
-
+				{!validSelection ? (
+					<ValidationMessage>
+						Select entries you want to update
+					</ValidationMessage>
+				) : null}
 				<FieldGroup>
 					<CheckboxField
 						key={"all"}
@@ -420,11 +407,6 @@ function Sidebar({ sdk }) {
 						);
 					})}
 				</FieldGroup>
-				{!validSelection ? (
-					<ValidationMessage>
-						Select entries you want to update
-					</ValidationMessage>
-				) : null}
 			</div>
 		);
 	}
